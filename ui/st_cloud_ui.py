@@ -9,49 +9,50 @@ import logfire
 # Initialize Logfire
 try:
     logfire.configure(token=st.secrets.get("LOGFIRE_TOKEN", os.getenv("LOGFIRE_TOKEN")))
-    logfire.instrument_requests()   # propagates trace context to the FastAPI backend
     LOGFIRE_STATUS = "Connected & Tracing"
 except Exception:
     LOGFIRE_STATUS = "Standby (No Token)"
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Enterprise Agentic RAG",
-    page_icon="🤖",
+    page_title="Research RAG - Quantum & ML",
+    page_icon="🔬",
     layout="wide",
 )
 
 # --- AVATARS ---
-AI_AVATAR = "🤖"
+AI_AVATAR = "🔬"
 USER_AVATAR = "👤"
 
 # --- SESSION MANAGEMENT ---
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
-    logfire.info(f"✨ New User Session Created: {st.session_state.session_id}")
+    logfire.info(f"New User Session Created: {st.session_state.session_id}")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 # --- SIDEBAR ---
 with st.sidebar:
-    st.title("🧠 Agent OS")
+    st.title("🧠 Research Agent")
     st.markdown("---")
+    st.caption("**Topics**: Quantum Computing, Machine Learning")
 
-    base_url = "http://localhost:8000"
+    base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
 
     st.markdown("---")
     st.success(f"Logfire: {LOGFIRE_STATUS}")
     st.info(f"Memory ID: {st.session_state.session_id[:8]}")
     
     if st.button("🗑️ Clear History & Memory", width="stretch", type="primary"):
-        logfire.warning(f"🗑️ Memory Wipe Triggered for session: {st.session_state.session_id}")
+        logfire.warning(f"Memory Wipe Triggered for session: {st.session_state.session_id}")
         st.session_state.messages = []
         st.session_state.session_id = str(uuid.uuid4())
         st.rerun()
 
 # --- MAIN CHAT ---
-st.title("🤖 Enterprise Agentic Assistant")
+st.title("🔬 Research RAG Assistant")
+st.caption("Ask me about Quantum Computing, Machine Learning, or the latest research papers.")
 
 # Display history
 for message in st.session_state.messages:
@@ -60,9 +61,9 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # Chat Input
-if prompt := st.chat_input("Ask about your documentation..."):
+if prompt := st.chat_input("Ask about quantum algorithms, ML architectures, recent papers..."):
     # START TRACE: User Interaction
-    with logfire.span("💬 User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
+    with logfire.span("User Chat Interaction", user_query=prompt, session_id=st.session_state.session_id):
         
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user", avatar=USER_AVATAR):
@@ -71,9 +72,9 @@ if prompt := st.chat_input("Ask about your documentation..."):
         # Assistant Response
         with st.chat_message("assistant", avatar=AI_AVATAR):
             data = {}
-            with st.status("🔍 Agent is thinking...", expanded=True) as status:
+            with st.status("🔍 Researching...", expanded=True) as status:
                 try:
-                    with logfire.span("📡 Calling RAG Backend"):
+                    with logfire.span("Calling RAG Backend"):
                         url = f"{base_url}/query"
                         payload = {"q": prompt, "thread_id": st.session_state.session_id}
                         response = requests.post(url, json=payload, timeout=60)
@@ -88,10 +89,10 @@ if prompt := st.chat_input("Ask about your documentation..."):
                     for step in steps:
                         st.markdown(f"⚙️ {step}", unsafe_allow_html=False)
 
-                    status.update(label="✅ Answer Synthesized", state="complete", expanded=False)
+                    status.update(label="✅ Research Complete", state="complete", expanded=False)
 
                 except Exception as e:
-                    logfire.error(f"❌ UI-Backend Connection Failed: {e}")
+                    logfire.error(f"UI-Backend Connection Failed: {e}")
                     status.update(label="❌ Connection Failed", state="error")
                     st.error("Backend Offline.")
                     st.stop()
@@ -110,7 +111,7 @@ if prompt := st.chat_input("Ask about your documentation..."):
             # Sources — outside status so they're visible after it collapses
             sources = data.get("sources", [])
             if sources:
-                with st.expander(f"📄 Retrieved Context ({len(sources)} chunks)"):
+                with st.expander(f"📄 Retrieved Research Context ({len(sources)} chunks)"):
                     for i, source in enumerate(sources):
                         st.caption(f"Chunk {i + 1}")
                         st.info(source)
@@ -118,4 +119,4 @@ if prompt := st.chat_input("Ask about your documentation..."):
                 st.caption("ℹ️ No context retrieved — conversational response.")
 
             st.session_state.messages.append({"role": "assistant", "content": full_answer})
-            logfire.info("✅ Chat cycle completed successfully.")
+            logfire.info("Chat cycle completed successfully.")

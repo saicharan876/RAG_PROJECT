@@ -19,3 +19,10 @@ pdfplumber
 
 logfire[fastapi,requests]
 loguru
+portkey-ai
+langchain-openai
+langchain-groq
+nemoguardrails
+langgraph
+flashrank
+streamlit

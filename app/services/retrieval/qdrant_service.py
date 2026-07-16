@@ -2,13 +2,15 @@ import logfire
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from app.config import settings
-from app.services.retrieval.embedding import embed_query
+from app.services.retrieval.embeddings import embed_query
 
 
 # Initialize Qdrant Client
 client = QdrantClient(
     url=settings.QDRANT_URL,
-    api_key=settings.QDRANT_API_KEY
+    port=443,
+    api_key=settings.QDRANT_API_KEY,
+    timeout=60.0
 )
 
 def search_enterprise_knowledge(query: str, limit: int = 8):
@@ -24,7 +26,7 @@ def search_enterprise_knowledge(query: str, limit: int = 8):
             collection_name=settings.QDRANT_COLLECTION,
             query=query_vector,
             limit=limit,
-            with_payload=True # JSON
+            with_payload=True
         )
 
         results = []
@@ -37,5 +39,5 @@ def search_enterprise_knowledge(query: str, limit: int = 8):
         
         return results
     except Exception as e:
-        logfire.error(f"❌ Qdrant Search Failed: {e}")
+        logfire.error(f"Qdrant Search Failed: {e}")
         return []

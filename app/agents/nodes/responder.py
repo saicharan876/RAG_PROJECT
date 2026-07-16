@@ -1,13 +1,12 @@
 import logfire
 from app.agents.state import AgentState
-from app.gateway import portkey_client, extract_cache_status
+from app.gateway.client import get_langchain_llm
 
 
 def generate_node(state: AgentState):
     """
-    Synthesizes a response using both Documentation Context AND Conversation History.
-    Uses the native Portkey client (not LangChain) so we can read the
-    x-portkey-cache-status response header and surface Cache: Hit in the UI.
+    Synthesizes a response using both Research Context AND Conversation History.
+    Uses native ChatGroq via the gateway client.
     """
     query = state["current_query"]
 
@@ -21,7 +20,8 @@ def generate_node(state: AgentState):
     if query == "CONVERSATIONAL":
         logfire.info("Generating conversational response using memory.")
         prompt = f"""
-        You are a friendly and helpful Enterprise AI Assistant.
+        You are a friendly and knowledgeable Research AI Assistant specialising in 
+        Quantum Computing and Machine Learning.
         Answer the user's latest message using the CONVERSATION HISTORY below.
 
         CONVERSATION HISTORY:
@@ -31,7 +31,7 @@ def generate_node(state: AgentState):
         "{user_msg}"
         """
     else:
-        logfire.info("Generating technical RAG response.")
+        logfire.info("Generating research-backed RAG response.")
         max_context_chars = 25000
         full_context = ""
 
@@ -43,10 +43,13 @@ def generate_node(state: AgentState):
                 break
 
         prompt = f"""
-        You are a Senior Technical Architect.
-        Answer the question using the TECHNICAL CONTEXT provided.
+        You are a Senior Research Scientist with deep expertise in Quantum Computing 
+        and Machine Learning.
+        Answer the question using the RESEARCH CONTEXT provided from relevant papers 
+        and documentation. Cite specific findings, algorithms, or results from the 
+        context when possible. Be thorough but clear.
 
-        TECHNICAL CONTEXT:
+        RESEARCH CONTEXT:
         {full_context}
 
         CONVERSATION HISTORY:
@@ -56,24 +59,15 @@ def generate_node(state: AgentState):
         "{user_msg}"
         """
 
-    with logfire.span("✍️ LLM Synthesis"):
+    with logfire.span("LLM Synthesis"):
         try:
-            response = portkey_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1
-            )
-            content = response.choices[0].message.content
-            cache_status = extract_cache_status(response)
-            is_cache_hit = cache_status == "HIT"
+            llm = get_langchain_llm(feature="responder")
+            response = llm.invoke(prompt)
+            content = response.content
 
-            if is_cache_hit:
-                logfire.info("⚡ Gateway Cache Hit — response served from Portkey cache.")
-                plan_update = state["plan"] + ["Cache: Hit ⚡"]
-                status = "Cache hit — instant response."
-            else:
-                logfire.info("✅ Response synthesised via LLM.")
-                plan_update = state["plan"]
-                status = "Response generated."
+            logfire.info("Response synthesised via LLM.")
+            plan_update = state["plan"]
+            status = "Response generated."
 
             return {
                 "final_answer": content,

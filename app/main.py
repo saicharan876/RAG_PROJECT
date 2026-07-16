@@ -19,7 +19,7 @@ from typing import Optional
 
 
 # Initialize FastAPI
-app = FastAPI(title="Enterprise Agentic RAG API")
+app = FastAPI(title="Research RAG Assistant - Quantum Computing & ML")
 
 
 @app.on_event("startup")
@@ -71,7 +71,7 @@ def query(request: QueryRequest):
         # Gate 1: NeMo Guardrails — blocks off-topic, jailbreaks, and handles dialog
         rail_fired, rail_response = guard(q)
         if rail_fired:
-            logfire.info(f"🛡️ Request blocked by guardrails | thread={thread_id}")
+            logfire.info(f"Request blocked by guardrails | thread={thread_id}")
             return {
                 "question": q,
                 "answer": rail_response,
@@ -84,7 +84,7 @@ def query(request: QueryRequest):
         # Run the graph synchronously to preserve Logfire context variables
         final_output = rag_agent.invoke(initial_state, config=config)
         
-        return { 
+        return {
             "question": q,
             "answer": final_output.get("final_answer"),
             "thought_process": final_output.get("plan"),
@@ -92,7 +92,7 @@ def query(request: QueryRequest):
             "sources": final_output.get("documents", [])
         }
     except Exception as e:
-        logfire.error(f"❌ Backend Execution Failed: {e}")
+        logfire.error(f"Backend Execution Failed: {e}")
         return {
             "question": q,
             "answer": "I apologize, but I encountered an internal error while processing your request. Please try again later.",

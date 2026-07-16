@@ -1,3 +1,4 @@
+import os
 import time
 import logfire
 from flashrank import Ranker, RerankRequest
@@ -13,10 +14,11 @@ def _get_ranker() -> Ranker:
     """
     global _ranker
     if _ranker is None:
-        logfire.info("🧠 Initializing FlashRank Model (TinyBERT) locally...")
+        logfire.info("Initializing FlashRank Model (TinyBERT) locally...")
         try:
-            # We use a specific cache directory to avoid permission issues in production
-            _ranker = Ranker(cache_dir="/tmp/flashrank")
+            # Use a Windows-compatible temp directory
+            cache_dir = os.path.join(os.environ.get("TEMP", os.environ.get("TMP", ".")), "flashrank")
+            _ranker = Ranker(cache_dir=cache_dir)
         except Exception:
             _ranker = Ranker()
     return _ranker
@@ -36,7 +38,7 @@ def rerank_documents(query: str, documents: list[str], top_n: int = 5) -> list[s
         return []
 
     start_time = time.time()
-    logfire.info(f"📡 [Reranker] Sending {len(documents)} docs to FlashRank Cross-Encoder...")
+    logfire.info(f"[Reranker] Sending {len(documents)} docs to FlashRank Cross-Encoder...")
 
     try:
         ranker = _get_ranker()
@@ -57,11 +59,11 @@ def rerank_documents(query: str, documents: list[str], top_n: int = 5) -> list[s
 
         duration = time.time() - start_time
         top_score = results[0]['score'] if results else 'N/A'
-        logfire.info(f"✅ [Reranker] Done in {duration:.2f}s. Top semantic score: {top_score}")
+        logfire.info(f"[Reranker] Done in {duration:.2f}s. Top semantic score: {top_score}")
         
         return reranked_docs
 
     except Exception as e:
-        logfire.error(f"❌ [Reranker] Semantic Reranking Failed: {e}")
+        logfire.error(f"[Reranker] Semantic Reranking Failed: {e}")
         # Fallback to the original Qdrant order to ensure the user still gets an answer
         return documents[:top_n]
