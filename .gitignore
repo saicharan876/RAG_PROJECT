@@ -1,2 +1,11 @@
-﻿.env
+.env
 .venv/
+.logfire/
+__pycache__/
+
+# Unpublished presentations and papers
+DATA/TRUE_DATA/Mind the Gap Deck.pdf
+DATA/TRUE_DATA/Paper_presentation.pptx
+DATA/TRUE_DATA/hybrid_short_long_short_proposal.pptx
+DATA/TRUE_DATA/quantum_string_matching.pptx
+DATA/TRUE_DATA/PaperId42_LordSen.pdf
